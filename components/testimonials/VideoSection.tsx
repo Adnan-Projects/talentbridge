@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Play, Pause, Upload, CheckCircle, Volume2, UserCheck, Sparkles } from 'lucide-react';
+import { Play, Pause, Upload, CheckCircle, Volume2, UserCheck, Sparkles, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface VideoShowcaseProps {
@@ -38,7 +38,7 @@ export default function VideoSection({
   const [videoSrc, setVideoSrc] = useState<string>(defaultVideoSrc);
   const [hasCustomVideo, setHasCustomVideo] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [videoError, setVideoError] = useState(true); // Default to placeholder until video loaded
+  const [videoError, setVideoError] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -56,7 +56,6 @@ export default function VideoSection({
   const togglePlay = () => {
     if (!videoRef.current) return;
     if (videoError) {
-      // Prompt user to upload if placeholder
       fileInputRef.current?.click();
       return;
     }
@@ -64,9 +63,12 @@ export default function VideoSection({
       videoRef.current.pause();
       setIsPlaying(false);
     } else {
-      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {
-        setVideoError(true);
-      });
+      videoRef.current
+        .play()
+        .then(() => setIsPlaying(true))
+        .catch(() => {
+          setVideoError(true);
+        });
     }
   };
 
@@ -88,7 +90,7 @@ export default function VideoSection({
             reverse && 'lg:flex-row-reverse'
           )}
         >
-          {/* Video Player & Upload Placeholder (7 cols) */}
+          {/* Video Player & Showcase Area (7 cols) */}
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             whileInView={{ opacity: 1, scale: 1 }}
@@ -101,18 +103,47 @@ export default function VideoSection({
               <video
                 ref={videoRef}
                 src={videoSrc}
-                className={cn(
-                  'w-full h-full object-cover',
-                  videoError && 'hidden'
-                )}
-                controls={!videoError && isPlaying}
+                preload="metadata"
+                playsInline
+                controls={isPlaying}
+                className={cn('w-full h-full object-cover', videoError && 'hidden')}
                 onPlay={() => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}
                 onError={() => setVideoError(true)}
-                onLoadedData={() => setVideoError(false)}
               />
 
-              {/* Attractive Fallback Placeholder UI (when video file is not yet uploaded) */}
+              {/* Play Button Overlay (when not playing and video is healthy) */}
+              {!isPlaying && !videoError && (
+                <div
+                  onClick={togglePlay}
+                  className="absolute inset-0 bg-black/30 hover:bg-black/20 transition-colors flex flex-col justify-between p-6 sm:p-8 cursor-pointer text-white"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-semibold tracking-wider uppercase border border-white/20">
+                      {tag}
+                    </span>
+                    <span className="text-xs text-white/80 bg-black/40 px-2.5 py-1 rounded-lg backdrop-blur-sm">
+                      HD Showcase
+                    </span>
+                  </div>
+
+                  <div className="my-auto text-center flex flex-col items-center">
+                    <div className="w-20 h-20 rounded-full bg-white text-brand-darkest flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-float mb-3 group-hover:bg-white">
+                      <Play className="w-8 h-8 ml-1 fill-current" />
+                    </div>
+                    <p className="text-sm font-bold text-white drop-shadow-md">
+                      Click to Play Video
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs text-white/90">
+                    <span>Featuring {studentName}</span>
+                    <span className="text-white/60 font-mono text-[11px]">{defaultVideoSrc}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Fallback Upload Placeholder UI (only if file missing/error) */}
               {videoError && (
                 <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-800 to-black flex flex-col justify-between p-6 sm:p-8 text-white">
                   <div className="flex items-center justify-between">
@@ -124,24 +155,22 @@ export default function VideoSection({
                     </span>
                   </div>
 
-                  {/* Central Play / Upload Button */}
                   <div className="my-auto text-center flex flex-col items-center">
                     <button
                       onClick={togglePlay}
-                      className="w-20 h-20 rounded-full bg-white text-brand-darkest flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-float mb-4 group-hover:bg-brand-light"
-                      aria-label="Play video or upload"
+                      className="w-20 h-20 rounded-full bg-white text-brand-darkest flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-float mb-4"
+                      aria-label="Upload video"
                     >
-                      <Play className="w-8 h-8 ml-1 fill-current" />
+                      <Upload className="w-8 h-8" />
                     </button>
                     <p className="text-sm font-semibold text-white/90">
-                      Click to Test or Upload Video File
+                      Upload Video File
                     </p>
                     <p className="text-xs text-white/50 mt-1 max-w-xs">
-                      Ready for MP4 upload. Place <code className="text-white/80">{defaultVideoSrc}</code> in /public/videos or browse now.
+                      Drop <code className="text-white/80">{defaultVideoSrc}</code> into /public/videos or select below.
                     </p>
                   </div>
 
-                  {/* Upload bar at bottom */}
                   <div className="flex items-center justify-between pt-4 border-t border-white/10 text-xs">
                     <div className="flex items-center gap-2 text-white/70">
                       <Volume2 className="w-4 h-4" />
@@ -149,7 +178,7 @@ export default function VideoSection({
                     </div>
                     <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-medium transition-colors border border-white/15">
                       <Upload className="w-3.5 h-3.5" />
-                      <span>Select Local Video</span>
+                      <span>Select Video File</span>
                       <input
                         ref={fileInputRef}
                         type="file"
@@ -162,24 +191,27 @@ export default function VideoSection({
                 </div>
               )}
 
-              {/* Upload Success Indicator Badge */}
+              {/* Custom Video Loaded Badge */}
               {hasCustomVideo && !videoError && (
                 <div className="absolute top-4 right-4 z-20 bg-emerald-600/90 backdrop-blur-md text-white text-xs px-3 py-1 rounded-full flex items-center gap-1.5 shadow-md">
                   <CheckCircle className="w-3.5 h-3.5" />
-                  <span>Custom Video Loaded</span>
+                  <span>Custom Video Active</span>
                 </div>
               )}
             </div>
 
-            {/* Quick Upload action strip below video */}
+            {/* Quick Actions Strip */}
             <div className="mt-3 flex items-center justify-between text-xs text-brand-secondary px-2">
-              <span>Source: <code className="font-mono">{hasCustomVideo ? 'Uploaded File' : defaultVideoSrc}</code></span>
+              <span className="flex items-center gap-1.5">
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Video: <code className="font-mono text-brand-darkest font-semibold">{hasCustomVideo ? 'Custom Upload' : defaultVideoSrc}</code></span>
+              </span>
               <button
                 onClick={() => fileInputRef.current?.click()}
                 className="text-brand-darkest hover:underline font-semibold flex items-center gap-1"
               >
                 <Upload className="w-3 h-3" />
-                <span>Replace Video</span>
+                <span>Change Video</span>
               </button>
             </div>
           </motion.div>
